@@ -31,6 +31,9 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     @Value("${spring.jwt.secretkey}")
     private String secret;
 
+    @Value("${gateway.secret}")
+    private String gatewaySecret;
+
     private static final List<String> PERMIT_PATHS = List.of(
             "/login", "/auth/user", "/auth/reissue"
     );
@@ -69,7 +72,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
         String jti = claims.getId();
         String uuid = claims.getSubject();
-        String role = claims.get("role", String.class);
+        String role = claims.get("role", String.class).replace("ROLE_", "");
         // todo refresh token은?
         return redisTemplate.hasKey("blacklist:" + jti)
                 .flatMap(blacklisted -> {
@@ -79,7 +82,8 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                     ServerWebExchange mutated = exchange.mutate()
                             .request(r -> r
                                     .header("X-User-Id", uuid)
-                                    .header("X-User-Role", role))
+                                    .header("X-User-Role", role)
+                                    .header("X-Gateway-Secret", gatewaySecret))
                             .build();
                     return chain.filter(mutated);
                 });
