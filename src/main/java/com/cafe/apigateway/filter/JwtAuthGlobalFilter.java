@@ -35,7 +35,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     private String gatewaySecret;
 
     private static final List<String> PERMIT_PATHS = List.of(
-            "/login", "/auth/user", "/auth/reissue"
+            "/login", "/auth/user", "/auth/reissue" // todo 어떤 경로?
     );
 
     @Override
@@ -46,12 +46,16 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
         String path = exchange.getRequest().getPath().value();
 
         if (PERMIT_PATHS.stream().anyMatch(path::startsWith)) {
-            return chain.filter(exchange);
+            ServerWebExchange mutated = exchange.mutate()
+                    .request(r -> r
+                            .header("X-Gateway-Secret", gatewaySecret))
+                    .build();
+            return chain.filter(mutated);
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return unauthorized(exchange, "토큰이 없습니다");
+            return unauthorized(exchange, ErrorCode.AUTH_TOKEN_INVALID);
         }
 
         String token = authHeader.substring(7);
@@ -65,19 +69,18 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (ExpiredJwtException e) {
-            return unauthorized(exchange, "토큰이 만료됐습니다");
+            return unauthorized(exchange, ErrorCode.AUTH_TOKEN_EXPIRE);
         } catch (Exception e) {
-            return unauthorized(exchange, "유효하지 않은 토큰입니다");
+            return unauthorized(exchange, ErrorCode.AUTH_TOKEN_INVALID);
         }
 
         String jti = claims.getId();
         String uuid = claims.getSubject();
         String role = claims.get("role", String.class).replace("ROLE_", "");
-        // todo refresh token은?
         return redisTemplate.hasKey("blacklist:" + jti)
                 .flatMap(blacklisted -> {
                     if (blacklisted) {
-                        return unauthorized(exchange, "이미 로그아웃된 토큰입니다");
+                        return unauthorized(exchange, ErrorCode.AUTH_TOKEN_LOGOUT);
                     }
                     ServerWebExchange mutated = exchange.mutate()
                             .request(r -> r
@@ -89,11 +92,11 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                 });
     }
 
-    private Mono<Void> unauthorized(ServerWebExchange exchange, String message) {
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+    private Mono<Void> unauthorized(ServerWebExchange exchange, ErrorCode errorCode) {
+        exchange.getResponse().setStatusCode(errorCode.getStatus());
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
-        String body = String.format("{\"message\":\"%s\"}", message);
+        String body = String.format("{\"code\":\"%s\", \"message\":\"%s\"}", errorCode.getCode(), errorCode.getMessage());
 
         DataBuffer buffer = exchange.getResponse()
                 .bufferFactory()
