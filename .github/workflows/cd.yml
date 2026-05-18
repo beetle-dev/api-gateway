@@ -59,8 +59,8 @@ jobs:
 
       - name: Download ECS task definition
         run: |
-          aws ecs describe-task-definition \\
-            --task-definition api-gateway-task \\
+          aws ecs describe-task-definition \
+            --task-definition api-gateway-task \
             --query taskDefinition > task-def.json
 
       - name: Update ECS task definition with new image
