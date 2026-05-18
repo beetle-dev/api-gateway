@@ -26,6 +26,9 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'gradle'
+          
+      - name: Run tests      
+        run: ./gradlew test
 
       - name: Build JAR
         run: ./gradlew build -x test
