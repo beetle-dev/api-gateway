@@ -2,9 +2,16 @@ package com.cafe.apigateway;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
+@ActiveProfiles("local")
 class ApiGatewayApplicationTests {
+
+    @MockitoBean
+    ReactiveStringRedisTemplate redisTemplate;
 
     @Test
     void contextLoads() {
