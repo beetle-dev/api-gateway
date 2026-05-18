@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -12,9 +13,9 @@ import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
@@ -34,8 +35,15 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     @Value("${gateway.secret}")
     private String gatewaySecret;
 
+    private SecretKey secretKey;
+
+    @PostConstruct
+    public void init() {
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
     private static final List<String> PERMIT_PATHS = List.of(
-            "/login", "/auth/user", "/auth/reissue" // todo 어떤 경로?
+            "/login", "/auth/user", "/auth/reissue"
     );
 
     @Override
@@ -45,7 +53,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
 
-        if (PERMIT_PATHS.stream().anyMatch(path::startsWith)) {
+        if (PERMIT_PATHS.contains(path)) {
             ServerWebExchange mutated = exchange.mutate()
                     .request(r -> r
                             .header("X-Gateway-Secret", gatewaySecret))
@@ -54,12 +62,12 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return unauthorized(exchange, ErrorCode.AUTH_TOKEN_INVALID);
         }
 
         String token = authHeader.substring(7);
-        SecretKey secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 
         Claims claims;
         try {
@@ -76,7 +84,12 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
         String jti = claims.getId();
         String uuid = claims.getSubject();
-        String role = claims.get("role", String.class).replace("ROLE_", "");
+
+        String roleRaw = claims.get("role", String.class);
+        if (!StringUtils.hasText(roleRaw))
+            return unauthorized(exchange, ErrorCode.AUTH_TOKEN_EXPIRE);
+        String role = roleRaw.replace("ROLE_", "");
+
         return redisTemplate.hasKey("blacklist:" + jti)
                 .flatMap(blacklisted -> {
                     if (blacklisted) {
