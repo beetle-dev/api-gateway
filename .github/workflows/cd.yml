@@ -4,13 +4,6 @@ on:
   push:
     branches: [ master ]
 
-env:
-  AWS_REGION: ap-northeast-2
-  ECR_REPOSITORY: cafe/api-gateway
-  ECS_CLUSTER: cafe-cluster
-  ECS_SERVICE: api-gateway-service
-  CONTAINER_NAME: api-gateway
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
