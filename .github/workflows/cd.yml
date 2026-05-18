@@ -2,7 +2,7 @@ name: CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
 
 env:
   AWS_REGION: ap-northeast-2
@@ -15,7 +15,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # OIDC 필수
+      id-token: write   
       contents: read
 
     steps:
