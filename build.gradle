@@ -31,6 +31,8 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-secrets-manager:3.1.1'
 }
 
 dependencyManagement {

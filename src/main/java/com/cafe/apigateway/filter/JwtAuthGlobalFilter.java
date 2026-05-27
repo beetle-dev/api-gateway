@@ -29,7 +29,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final ReactiveStringRedisTemplate redisTemplate;
 
-    @Value("${spring.jwt.secretkey}")
+    @Value("${spring.jwt.secret}")
     private String secret;
 
     @Value("${gateway.secret}")
