@@ -1,6 +1,6 @@
 spring:
   config:
-    import: "aws-secretsmanager:/cafe/api-gateway"
+    import: "aws-secretsmanager:cafe/api-gateway"
 
   data:
     redis:
