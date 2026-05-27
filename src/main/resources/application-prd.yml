@@ -11,25 +11,25 @@ spring:
         enabled: true
 
   jwt:
-    secret: ${ JWT_SECRET }
+    secret: ${JWT_SECRET}
 
   cloud:
     gateway:
       routes:
         - id: auth-service
-          uri : ${ CLOUD_GATEWAY_AUTH }
+          uri : ${CLOUD_GATEWAY_AUTH}
           predicates:
             - Path=/login,/auth/**
 
         - id: store-service
-          uri : ${ CLOUD_GATEWAY_STORE }
+          uri : ${CLOUD_GATEWAY_STORE}
           predicates:
             - Path=/stores/**,/menus/**
 
         - id: notification-service
-          uri : ${ CLOUD_GATEWAY_NOTI }
+          uri : ${CLOUD_GATEWAY_NOTI}
           predicates:
             - Path=/notification/**
 
 gateway:
-  secret: ${ GATEWAY_SECRET }
+  secret: ${GATEWAY_SECRET}
