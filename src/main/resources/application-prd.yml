@@ -1,6 +1,9 @@
+server:
+  port: 8080
+
 spring:
   config:
-    import: "aws-secretsmanager:cafe/api-gateway"
+    import: "aws-secretsmanager:prd/cafe"
 
   data:
     redis:
