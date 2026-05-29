@@ -51,3 +51,8 @@ spring:
 
 gateway:
   secret: ${GATEWAY_SECRET}
+
+logging:
+  level:
+    root: INFO                          # 전체 기본
+    org.springframework.web: DEBUG      # 웹 요청/응답
