@@ -2,50 +2,31 @@ server:
   port: 8080
 
 spring:
-  config:
-    import: "aws-secretsmanager:prd/cafe"
-
   data:
     redis:
       host: ${REDIS_HOST}
-      port: ${REDIS_PORT}
+      port: ${REDIS_PORT:6379}
       ssl:
-        enabled: true
+        enabled: false
 
   jwt:
     secret: ${JWT_SECRET}
 
   cloud:
     gateway:
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins:
-              - ${ALLOWED_ORIGIN_ADMIN}
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-              - PATCH
-            allowedHeaders:
-              - "*"
-            allowCredentials: true
-
       routes:
         - id: auth-service
-          uri : ${CLOUD_GATEWAY_AUTH}
+          uri: ${CLOUD_GATEWAY_AUTH}
           predicates:
             - Path=/login,/auth/**
 
         - id: store-service
-          uri : ${CLOUD_GATEWAY_STORE}
+          uri: ${CLOUD_GATEWAY_STORE}
           predicates:
             - Path=/stores/**,/menus/**
 
         - id: notification-service
-          uri : ${CLOUD_GATEWAY_NOTI}
+          uri: ${CLOUD_GATEWAY_NOTI}
           predicates:
             - Path=/notification/**
 
@@ -54,5 +35,5 @@ gateway:
 
 logging:
   level:
-    root: INFO                          # 전체 기본
-    org.springframework.web: DEBUG      # 웹 요청/응답
+    root: INFO
+    org.springframework.web: DEBUG
