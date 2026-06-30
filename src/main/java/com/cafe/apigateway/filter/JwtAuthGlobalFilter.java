@@ -43,7 +43,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     }
 
     private static final List<String> PERMIT_PATHS = List.of(
-            "/login", "/auth/user", "/auth/reissue"
+            "/login", "/auth/signup", "/auth/reissue"
     );
 
     @Override

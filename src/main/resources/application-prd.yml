@@ -14,6 +14,21 @@ spring:
 
   cloud:
     gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "https://cafe.beetledev.kr"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
       routes:
         - id: auth-service
           uri: ${CLOUD_GATEWAY_AUTH}
@@ -30,6 +45,11 @@ spring:
           predicates:
             - Path=/notification/**
 
+management:
+  endpoint:
+    health:
+      show-details: always
+
 gateway:
   secret: ${GATEWAY_SECRET}
 
@@ -37,3 +57,5 @@ logging:
   level:
     root: INFO
     org.springframework.web: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG
