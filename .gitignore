@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### App secrets (개인/로컬 시크릿 포함) ###
+src/main/resources/application-local.yml
+src/main/resources/application-test.yml
