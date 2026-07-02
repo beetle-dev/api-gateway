@@ -43,7 +43,7 @@ spring:
         - id: notification-service
           uri: ${CLOUD_GATEWAY_NOTI}
           predicates:
-            - Path=/notification/**
+            - Path=/notification/**,/alarms/**
 
 management:
   endpoint:
@@ -56,6 +56,7 @@ gateway:
 logging:
   level:
     root: INFO
-    org.springframework.web: DEBUG
-    org.springframework.cloud.gateway: DEBUG
-    reactor.netty.http.client: DEBUG
+    org.springframework.web: WARN
+    org.springframework.cloud.gateway: INFO
+    reactor.netty.http.client: WARN
+    com.cafe.apigateway: INFO

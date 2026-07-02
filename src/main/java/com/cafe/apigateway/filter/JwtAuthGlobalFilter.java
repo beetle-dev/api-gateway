@@ -1,5 +1,6 @@
 package com.cafe.apigateway.filter;
 
+import com.cafe.apigateway.exception.ErrorCode;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
@@ -14,6 +15,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
@@ -43,7 +45,7 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
     }
 
     private static final List<String> PERMIT_PATHS = List.of(
-            "/login", "/auth/signup", "/auth/reissue"
+            "/login", "/auth/signup", "/auth/reissue", "/alarms/subscribe"
     );
 
     @Override
@@ -77,44 +79,50 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (ExpiredJwtException e) {
-            return unauthorized(exchange, ErrorCode.AUTH_TOKEN_EXPIRE);
+            return unauthorized(exchange, ErrorCode.AUTH_TOKEN_EXPIRED);
         } catch (Exception e) {
             return unauthorized(exchange, ErrorCode.AUTH_TOKEN_INVALID);
         }
 
         String jti = claims.getId();
         String uuid = claims.getSubject();
-
         String roleRaw = claims.get("role", String.class);
+
         if (!StringUtils.hasText(roleRaw))
-            return unauthorized(exchange, ErrorCode.AUTH_TOKEN_EXPIRE);
+            return unauthorized(exchange, ErrorCode.AUTH_ROLE_MISSING);
+
         String role = roleRaw.replace("ROLE_", "");
 
         return redisTemplate.hasKey("blacklist:" + jti)
                 .flatMap(blacklisted -> {
                     if (blacklisted) {
-                        return unauthorized(exchange, ErrorCode.AUTH_TOKEN_LOGOUT);
+                        return unauthorized(exchange, ErrorCode.AUTH_TOKEN_LOGGED_OUT);
                     }
+
                     ServerWebExchange mutated = exchange.mutate()
                             .request(r -> r
                                     .header("X-User-Id", uuid)
                                     .header("X-User-Role", role)
                                     .header("X-Gateway-Secret", gatewaySecret))
                             .build();
+
                     return chain.filter(mutated);
                 });
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, ErrorCode errorCode) {
-        exchange.getResponse().setStatusCode(errorCode.getStatus());
-        exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        ServerHttpResponse response = exchange.getResponse();
+
+        response.setStatusCode(errorCode.getStatus());
+        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
         String body = String.format("{\"code\":\"%s\", \"message\":\"%s\"}", errorCode.getCode(), errorCode.getMessage());
 
-        DataBuffer buffer = exchange.getResponse()
+        DataBuffer buffer = response
                 .bufferFactory()
                 .wrap(body.getBytes(StandardCharsets.UTF_8));
 
-        return exchange.getResponse().writeWith(Mono.just(buffer));
+        return response.writeWith(Mono.just(buffer));
     }
 }
